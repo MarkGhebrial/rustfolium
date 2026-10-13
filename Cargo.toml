@@ -40,6 +40,10 @@ pio-proc = "0.3"
 pio = "0.3.0"
 rand = { version = "0.9.2", default-features = false }
 
+# Display driver and graphics library
+ssd1306 = "0.10.0"
+embedded-graphics = "0.8.2"
+
 [profile.release]
 debug = 2
 
