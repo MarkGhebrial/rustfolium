@@ -1,5 +1,3 @@
-//! Template
-
 #![no_std]
 #![no_main]
 
@@ -7,8 +5,9 @@ use defmt::*;
 use embassy_executor::Spawner;
 use embassy_rp::gpio::Level;
 use embedded_graphics::{Drawable, text::Text};
-use ssd1306::mode::DisplayConfig;
-use {defmt_rtt as _, panic_probe as _};
+use ssd1306::mode::DisplayConfigAsync;
+
+use panic_probe as _;
 
 // Set up the device interrupts
 embassy_rp::bind_interrupts!(struct Interrupts {
@@ -23,13 +22,13 @@ async fn main(spawner: Spawner) {
         embassy_rp::i2c::I2c::new_async(p.I2C1, p.PIN_15, p.PIN_14, Interrupts, Default::default());
 
     let interface = ssd1306::I2CDisplayInterface::new(i2c);
-    let mut display = ssd1306::Ssd1306::new(
+    let mut display = ssd1306::Ssd1306Async::new(
         interface,
         ssd1306::size::DisplaySize128x64,
         ssd1306::rotation::DisplayRotation::Rotate180,
     )
     .into_buffered_graphics_mode();
-    display.init().unwrap();
+    display.init().await.unwrap();
 
     // Set the font size to 6 by 10 pixels
     let text_style = embedded_graphics::mono_font::MonoTextStyleBuilder::new()
@@ -55,12 +54,10 @@ async fn main(spawner: Spawner) {
     .draw(&mut display)
     .unwrap();
 
-    display.flush().unwrap();
+    display.flush().await.unwrap();
 
     // Make the LED blink
     spawner.spawn(blink(p.PIN_13.into())).unwrap();
-
-    info!("Hello World!");
 }
 
 // #[embassy_executor::task]
