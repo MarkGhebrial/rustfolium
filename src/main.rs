@@ -3,6 +3,7 @@
 
 mod usb;
 
+use embassy_dshot::rp::BidirDshotProgram;
 use embassy_executor::Spawner;
 use embassy_rp::gpio::Level;
 use embedded_graphics::{Drawable, text::Text};
@@ -14,6 +15,7 @@ use panic_probe as _;
 embassy_rp::bind_interrupts!(struct Interrupts {
     I2C1_IRQ => embassy_rp::i2c::InterruptHandler<embassy_rp::peripherals::I2C1>;
     USBCTRL_IRQ => embassy_rp::usb::InterruptHandler<embassy_rp::peripherals::USB>;
+    PIO0_IRQ_0 => embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO0>;
 });
 
 #[embassy_executor::main]
@@ -34,6 +36,52 @@ async fn main(spawner: Spawner) {
     )
     .into_buffered_graphics_mode();
     display.init().await.unwrap();
+
+    /**** INITIALIZE PIO FOR DSHOT ****/
+    let mut pio = embassy_rp::pio::Pio::new(p.PIO0, Interrupts);
+    let program = BidirDshotProgram::new(&mut pio.common);
+    let mut dshot0 = embassy_dshot::rp::BidirDshotPio::new(
+        pio.sm0,
+        &mut pio.common,
+        p.PIN_0,
+        &program,
+        embassy_dshot::DshotSpeed::DShot600,
+    );
+    let mut dshot1 = embassy_dshot::rp::BidirDshotPio::new(
+        pio.sm1,
+        &mut pio.common,
+        p.PIN_1,
+        &program,
+        embassy_dshot::DshotSpeed::DShot600,
+    );
+    let mut dshot2 = embassy_dshot::rp::BidirDshotPio::new(
+        pio.sm2,
+        &mut pio.common,
+        p.PIN_2,
+        &program,
+        embassy_dshot::DshotSpeed::DShot600,
+    );
+    let mut dshot3 = embassy_dshot::rp::BidirDshotPio::new(
+        pio.sm3,
+        &mut pio.common,
+        p.PIN_3,
+        &program,
+        embassy_dshot::DshotSpeed::DShot600,
+    );
+
+    usb::print(b"Arming dshot...").await;
+    let arm_duration = embassy_time::Duration::from_millis(2000);
+    let _arm_results = embassy_futures::join::join4(
+        dshot0.arm_async(arm_duration),
+        dshot1.arm_async(arm_duration),
+        dshot2.arm_async(arm_duration),
+        dshot3.arm_async(arm_duration),
+    )
+    .await; // TODO: Don't ignore the arm results
+    usb::print(b" done\n").await;
+
+    let rev = embassy_rp::gpio::Input::new(p.PIN_18, embassy_rp::gpio::Pull::Up);
+    let trigger = embassy_rp::gpio::Input::new(p.PIN_21, embassy_rp::gpio::Pull::Up);
 
     // Set the font size to 6 by 10 pixels
     let text_style = embedded_graphics::mono_font::MonoTextStyleBuilder::new()
@@ -63,12 +111,37 @@ async fn main(spawner: Spawner) {
 
     spawner.spawn(print_task()).unwrap();
     spawner.spawn(blink(p.PIN_13.into())).unwrap();
+
+    loop {
+        let mut throttle = 0;
+        if rev.is_low() {
+            throttle = 1000;
+        }
+
+        dshot0.throttle_async(throttle).await.unwrap();
+        dshot1.throttle_async(throttle).await.unwrap();
+        dshot2.throttle_async(0).await.unwrap();
+        dshot3.throttle_async(0).await.unwrap();
+
+        match dshot0.throttle_with_telemetry(throttle).await {
+            Ok(telemetry) => {
+                // telemetry.rpm(motor_poles);
+            }
+            Err(err) => usb::print(b"DSHOT ERROR").await,
+        }
+        embassy_time::Timer::after_millis(10).await;
+    }
 }
+
+// #[embassy_executor::task(pool_size = 4)]
+// async fn control_loop_task(motor: &'static mut Motor) {
+
+// }
 
 /// Print "Hello world" to usb every 250 ms
 #[embassy_executor::task]
 async fn print_task() {
-    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(250));
+    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(2500));
     loop {
         usb::print(b"abcdefghijklmnopqrstuvwxyz0123456789,./;'[]-=<>?:|_+!@#$%^&*()`~\n").await;
         usb::print(b"This is a test of the very doohickey corporation system. Do not panic. This is just a test").await;
