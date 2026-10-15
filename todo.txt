@@ -1,0 +1,7 @@
+TODO:
+- USB serial (println)
+- Dshot
+- Voltage sensing
+- Closed loop
+- Firing profiles
+- Menu system and configuration
