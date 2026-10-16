@@ -16,6 +16,8 @@ type UsbSerialClass = embassy_usb::class::cdc_acm::CdcAcmClass<
 type UsbDevice =
     embassy_usb::UsbDevice<'static, embassy_rp::usb::Driver<'static, embassy_rp::peripherals::USB>>;
 
+const MAX_USB_PACKET_SIZE: u16 = 64;
+
 static USB_PIPE: pipe::Pipe<CriticalSectionRawMutex, 128> = Pipe::new();
 
 /// Initialize the usb peripheral for use in CDC-ACM mode.
@@ -56,7 +58,7 @@ pub fn init_usb_serial(
 
         static STATE: StaticCell<State> = StaticCell::new();
         let state = STATE.init(State::new());
-        CdcAcmClass::new(&mut usb_builder, state, 64) // Max packet size of 64
+        CdcAcmClass::new(&mut usb_builder, state, MAX_USB_PACKET_SIZE) // Max packet size of 64
     };
     let usb: UsbDevice = usb_builder.build();
 
@@ -72,7 +74,7 @@ async fn usb_task(mut usb: UsbDevice) {
 
 #[embassy_executor::task]
 async fn usb_update_task(mut usb: UsbSerialClass) {
-    let mut buf: [u8; 64] = [0; 64];
+    let mut buf: [u8; MAX_USB_PACKET_SIZE as usize] = [0; MAX_USB_PACKET_SIZE as usize];
     loop {
         let num_bytes = USB_PIPE.read(&mut buf).await;
         usb.write_packet(&buf[..num_bytes]).await.unwrap();
