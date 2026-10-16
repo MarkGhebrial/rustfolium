@@ -1,9 +1,9 @@
 #![no_std]
 #![no_main]
 
+mod dshot;
 mod usb;
 
-use embassy_dshot::rp::BidirDshotProgram;
 use embassy_executor::Spawner;
 use embassy_rp::gpio::Level;
 use embedded_graphics::{Drawable, text::Text};
@@ -37,37 +37,8 @@ async fn main(spawner: Spawner) {
     .into_buffered_graphics_mode();
     display.init().await.unwrap();
 
-    /**** INITIALIZE PIO FOR DSHOT ****/
-    let mut pio = embassy_rp::pio::Pio::new(p.PIO0, Interrupts);
-    let program = BidirDshotProgram::new(&mut pio.common);
-    let mut dshot0 = embassy_dshot::rp::BidirDshotPio::new(
-        pio.sm0,
-        &mut pio.common,
-        p.PIN_0,
-        &program,
-        embassy_dshot::DshotSpeed::DShot600,
-    );
-    let mut dshot1 = embassy_dshot::rp::BidirDshotPio::new(
-        pio.sm1,
-        &mut pio.common,
-        p.PIN_1,
-        &program,
-        embassy_dshot::DshotSpeed::DShot600,
-    );
-    let mut dshot2 = embassy_dshot::rp::BidirDshotPio::new(
-        pio.sm2,
-        &mut pio.common,
-        p.PIN_2,
-        &program,
-        embassy_dshot::DshotSpeed::DShot600,
-    );
-    let mut dshot3 = embassy_dshot::rp::BidirDshotPio::new(
-        pio.sm3,
-        &mut pio.common,
-        p.PIN_3,
-        &program,
-        embassy_dshot::DshotSpeed::DShot600,
-    );
+    let (mut dshot0, mut dshot1, mut dshot2, mut dshot3) =
+        dshot::init_dshot(p.PIO0, p.PIN_0, p.PIN_1, p.PIN_2, p.PIN_3);
 
     usb::print(b"Arming dshot...").await;
     let arm_duration = embassy_time::Duration::from_millis(2000);
@@ -132,11 +103,6 @@ async fn main(spawner: Spawner) {
         embassy_time::Timer::after_millis(10).await;
     }
 }
-
-// #[embassy_executor::task(pool_size = 4)]
-// async fn control_loop_task(motor: &'static mut Motor) {
-
-// }
 
 /// Print "Hello world" to usb every 250 ms
 #[embassy_executor::task]
