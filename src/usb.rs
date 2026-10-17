@@ -84,3 +84,18 @@ async fn usb_update_task(mut usb: UsbSerialClass) {
 pub async fn print(bytes: &[u8]) {
     USB_PIPE.write(bytes).await;
 }
+
+/// Implementation taken from https://github.com/MarkGhebrial/CS122A-lecture-homework-week5-r/blob/d6cb467f0743c9019d089348c2608e1246be14f1/src/vid.c#L177-L189
+pub async fn print_u32(n: u32) {
+    // Figure out the place value of the most significant digit
+    let mut place_value = 1;
+    while n / (place_value * 10) != 0 {
+        place_value += 10;
+    }
+
+    // Print the digits, starting from the most significant one.
+    while place_value != 0 {
+        print(&[b'0' + (n / place_value % 10) as u8]).await;
+        place_value /= 10;
+    }
+}
