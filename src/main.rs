@@ -1,8 +1,11 @@
 #![no_std]
 #![no_main]
 
+mod battery;
+mod configuration;
 mod dshot;
 mod usb;
+mod util;
 
 use embassy_executor::Spawner;
 use embassy_rp::gpio::Level;
@@ -16,11 +19,14 @@ embassy_rp::bind_interrupts!(struct Interrupts {
     I2C1_IRQ => embassy_rp::i2c::InterruptHandler<embassy_rp::peripherals::I2C1>;
     USBCTRL_IRQ => embassy_rp::usb::InterruptHandler<embassy_rp::peripherals::USB>;
     PIO0_IRQ_0 => embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO0>;
+    ADC_IRQ_FIFO => embassy_rp::adc::InterruptHandler;
 });
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
+
+    battery::init_adc(spawner, p.ADC, p.PIN_28);
 
     usb::init_usb_serial(spawner, p.USB, Interrupts);
     usb::print(b"Initialized USB").await;
@@ -90,6 +96,17 @@ async fn main(spawner: Spawner) {
     spawner.spawn(blink(p.PIN_13.into())).unwrap();
 
     loop {
+        let voltage = battery::read_battery_voltage().await;
+
+        usb::print(b"Battery voltage (mV): ").await;
+        usb::print_u32((voltage * 1000.0) as u32).await;
+        usb::print(b"; Cell count: ").await;
+        match battery::CELL_COUNT.try_get() {
+            Some(count) => usb::print_u32(*count as u32).await,
+            None => usb::print(b"--").await,
+        }
+        usb::print(b"\n").await;
+
         let mut throttle = 0;
         if rev.is_low() {
             throttle = 1000;
