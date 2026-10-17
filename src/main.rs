@@ -37,8 +37,14 @@ async fn main(spawner: Spawner) {
     .into_buffered_graphics_mode();
     display.init().await.unwrap();
 
-    let (mut dshot0, mut dshot1, mut dshot2, mut dshot3) =
-        dshot::init_dshot(p.PIO0, p.PIN_0, p.PIN_1, p.PIN_2, p.PIN_3);
+    let (mut dshot0, mut dshot1, mut dshot2, mut dshot3) = dshot::init_dshot(
+        p.PIO0,
+        p.PIN_0,
+        p.PIN_1,
+        p.PIN_2,
+        p.PIN_3,
+        embassy_dshot::DshotSpeed::DShot600,
+    );
 
     usb::print(b"Arming dshot...").await;
     let arm_duration = embassy_time::Duration::from_millis(2000);
