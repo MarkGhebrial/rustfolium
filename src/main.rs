@@ -92,7 +92,6 @@ async fn main(spawner: Spawner) {
 
     display.flush().await.unwrap();
 
-    spawner.spawn(print_task()).unwrap();
     spawner.spawn(blink(p.PIN_13.into())).unwrap();
 
     loop {
@@ -126,24 +125,6 @@ async fn main(spawner: Spawner) {
         embassy_time::Timer::after_millis(10).await;
     }
 }
-
-/// Print "Hello world" to usb every 250 ms
-#[embassy_executor::task]
-async fn print_task() {
-    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(2500));
-    loop {
-        usb::print(b"abcdefghijklmnopqrstuvwxyz0123456789,./;'[]-=<>?:|_+!@#$%^&*()`~\n").await;
-        usb::print(b"This is a test of the very doohickey corporation system. Do not panic. This is just a test").await;
-        for i in 0..100 {
-            usb::print(&[b'a' + (i % 26)]).await;
-        }
-
-        ticker.next().await;
-    }
-}
-
-// #[embassy_executor::task]
-// async fn display(spi: embassy_rp::Peri<'static, embassy_rp::spi::Spi<'static, >>)
 
 #[embassy_executor::task]
 async fn blink(pin: embassy_rp::Peri<'static, embassy_rp::gpio::AnyPin>) {
