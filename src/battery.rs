@@ -1,4 +1,7 @@
-use crate::{configuration::VOLTAGE_DIVIDER_RATIO, util::map};
+use crate::{
+    configuration::{ADC_RESOLUTION, VOLTAGE_DIVIDER_RATIO},
+    util::map,
+};
 use embassy_executor::Spawner;
 use embassy_sync::{
     blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex, once_lock::OnceLock,
@@ -66,7 +69,7 @@ pub async fn read_battery_voltage() -> f32 {
     let adc_voltage = map(
         read_battery_adc_channel().await.unwrap() as f32,
         0.0,
-        2048.0,
+        ADC_RESOLUTION as f32,
         0.0,
         3.3,
     );

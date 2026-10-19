@@ -1,4 +1,6 @@
-pub const VOLTAGE_DIVIDER_RATIO: f32 = 22.0 / 122.0;
+pub const ADC_RESOLUTION: usize = 4096;
+
+pub const VOLTAGE_DIVIDER_RATIO: f32 = 10.0 / 11.0;
 /// Per-cell threshold for the low battery warning.
 pub const LOW_VOLTAGE_THRESHOLD: f32 = 3.5;
 /// Per-cell threshold for the critical battery warning.
