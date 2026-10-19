@@ -106,21 +106,15 @@ async fn main(spawner: Spawner) {
         }
         usb::print(b"\n").await;
 
-        let mut throttle = 0;
         if rev.is_low() {
-            throttle = 1000;
-        }
-
-        dshot0.throttle_async(throttle).await.unwrap();
-        dshot1.throttle_async(throttle).await.unwrap();
-        dshot2.throttle_async(0).await.unwrap();
-        dshot3.throttle_async(0).await.unwrap();
-
-        match dshot0.throttle_with_telemetry(throttle).await {
-            Ok(telemetry) => {
-                // telemetry.rpm(motor_poles);
-            }
-            Err(err) => usb::print(b"DSHOT ERROR").await,
+            usb::print(b"REVVING\n").await;
+            // let mut throttle = 0;
+            let throttle = 1000;
+            dshot0.throttle_async(throttle).await.unwrap();
+            dshot1.throttle_async(throttle).await.unwrap();
+        } else {
+            dshot0.throttle_idle_async().await.unwrap();
+            dshot1.throttle_idle_async().await.unwrap();
         }
         embassy_time::Timer::after_millis(10).await;
     }
