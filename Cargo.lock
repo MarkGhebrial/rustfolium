@@ -314,9 +314,9 @@ dependencies = [
 
 [[package]]
 name = "dshot-frame"
-version = "0.2.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccace5cb9d5d33d71bfb679043feb6bf384a2be1950f02880c3d9c5d8f01cc83"
+checksum = "79e8a271903761510077bacddb6061b21f71bd4105e17d2cb90cc49a2529c94b"
 
 [[package]]
 name = "either"
@@ -327,7 +327,7 @@ checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 [[package]]
 name = "embassy-dshot"
 version = "0.5.1"
-source = "git+https://github.com/MarkGhebrial/embassy-dshot?branch=main#135d30aa2aa7e046143ab76c8d1ea46ce342642a"
+source = "git+https://github.com/MarkGhebrial/embassy-dshot?branch=main#6aea3fc1626d5a17bf804a4fb8960aed9d975e36"
 dependencies = [
  "dshot-frame",
  "embassy-rp",
