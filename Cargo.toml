@@ -23,7 +23,7 @@ cortex-m = { version = "0.7.7", features = ["inline-asm"] }
 cortex-m-rt = "0.7.5"
 panic-probe = { version = "1.0", features = [] }
 # futures = { version = "0.3.31", default-features = false, features = ["async-await", "cfg-target-has-atomic", "unstable"] }
-# heapless = "0.9"
+heapless = "0.9.3"
 
 
 embedded-hal-1 = { package = "embedded-hal", version = "=1.0.0" }
@@ -36,7 +36,7 @@ portable-atomic = { version = "1.13", features = ["critical-section"] }
 # log = "0.4"
 # pio-proc = "0.4.0"
 # pio = "0.4.0"
-rand = { version = "0.9.2", default-features = false }
+# rand = { version = "0.9.2", default-features = false }
 
 # Display driver and graphics library
 ssd1306 = { version = "0.10.0", features = ["async"] }

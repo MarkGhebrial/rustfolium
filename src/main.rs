@@ -4,12 +4,13 @@
 mod battery;
 mod configuration;
 mod dshot;
+mod menu;
 mod usb;
 mod util;
 
 use embassy_executor::Spawner;
 use embassy_rp::gpio::Level;
-use embedded_graphics::{Drawable, text::Text};
+use embedded_graphics::draw_target::DrawTarget;
 use ssd1306::mode::DisplayConfigAsync;
 
 use panic_probe as _;
@@ -42,6 +43,8 @@ async fn main(spawner: Spawner) {
     )
     .into_buffered_graphics_mode();
     display.init().await.unwrap();
+    display.clear_buffer();
+    display.flush().await.unwrap();
 
     let (mut dshot0, mut dshot1, mut dshot2, mut dshot3) = dshot::init_dshot(
         p.PIO0,
@@ -66,36 +69,21 @@ async fn main(spawner: Spawner) {
     let rev = embassy_rp::gpio::Input::new(p.PIN_18, embassy_rp::gpio::Pull::Up);
     let trigger = embassy_rp::gpio::Input::new(p.PIN_21, embassy_rp::gpio::Pull::Up);
 
-    // Set the font size to 6 by 10 pixels
-    let text_style = embedded_graphics::mono_font::MonoTextStyleBuilder::new()
-        .font(&embedded_graphics::mono_font::ascii::FONT_6X10)
-        .text_color(embedded_graphics::pixelcolor::BinaryColor::On)
-        .build();
-
-    Text::with_baseline(
-        "Hello world!",
-        embedded_graphics::geometry::Point::zero(),
-        text_style,
-        embedded_graphics::text::Baseline::Top,
-    )
-    .draw(&mut display)
-    .unwrap();
-
-    Text::with_baseline(
-        "Hello Rust!",
-        embedded_graphics::geometry::Point::new(0, 16),
-        text_style,
-        embedded_graphics::text::Baseline::Top,
-    )
-    .draw(&mut display)
-    .unwrap();
-
-    display.flush().await.unwrap();
-
     spawner.spawn(blink(p.PIN_13.into())).unwrap();
 
     loop {
         let voltage = battery::read_battery_voltage().await;
+
+        display
+            .clear(embedded_graphics::pixelcolor::BinaryColor::Off)
+            .unwrap();
+        menu::draw_status_screen(
+            &mut display,
+            battery::CELL_COUNT.try_get().map(|n| *n),
+            voltage,
+        )
+        .unwrap();
+        display.flush().await.unwrap();
 
         usb::print(b"Battery voltage (mV): ").await;
         usb::print_u32((voltage * 1000.0) as u32).await;
