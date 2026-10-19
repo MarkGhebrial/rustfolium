@@ -7,3 +7,17 @@ where
 {
     (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 }
+
+/// Clamp x to the inclusive range from min to max
+pub fn clamp<T>(x: T, min: T, max: T) -> T
+where
+    T: PartialOrd,
+{
+    if x < min {
+        min
+    } else if x > max {
+        max
+    } else {
+        x
+    }
+}
