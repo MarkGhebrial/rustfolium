@@ -10,7 +10,6 @@ mod usb;
 mod util;
 
 use embassy_executor::Spawner;
-use embedded_graphics::draw_target::DrawTarget;
 use ssd1306::{
     Ssd1306Async,
     mode::{BufferedGraphicsModeAsync, DisplayConfigAsync},
@@ -74,7 +73,7 @@ async fn main(spawner: Spawner) {
     let rev = embassy_rp::gpio::Input::new(p.PIN_18, embassy_rp::gpio::Pull::Up);
     let trigger = embassy_rp::gpio::Input::new(p.PIN_21, embassy_rp::gpio::Pull::Up);
 
-    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_micros(100));
+    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_micros(1000));
     loop {
         let mut throttle = 0;
         if rev.is_low() {
@@ -124,17 +123,18 @@ async fn display_task(
         BufferedGraphicsModeAsync<DisplaySize128x64>,
     >,
 ) {
-    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_hz(30));
+    // Update the display at roughly 30fps
+    let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_millis(33));
 
     loop {
         usb::print(b"updating display\n").await;
 
         let voltage = battery::read_battery_voltage().await;
-        usb::print(b"done reading battery voltage").await;
+        usb::print(b"done reading battery voltage\n").await;
 
-        display
-            .clear(embedded_graphics::pixelcolor::BinaryColor::Off)
-            .unwrap();
+        // display
+        //     .clear(embedded_graphics::pixelcolor::BinaryColor::Off)
+        //     .unwrap();
 
         menu::draw_status_screen(
             &mut display,

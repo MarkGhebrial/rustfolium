@@ -12,11 +12,13 @@ use heapless::String;
 
 const TEXT_4X6: MonoTextStyle<'static, BinaryColor> = MonoTextStyleBuilder::new()
     .font(&embedded_graphics::mono_font::ascii::FONT_4X6)
+    .background_color(embedded_graphics::pixelcolor::BinaryColor::Off)
     .text_color(embedded_graphics::pixelcolor::BinaryColor::On)
     .build();
 
 const BOLD_7X13: MonoTextStyle<'static, BinaryColor> = MonoTextStyleBuilder::new()
     .font(&embedded_graphics::mono_font::ascii::FONT_7X13_BOLD)
+    .background_color(embedded_graphics::pixelcolor::BinaryColor::Off)
     .text_color(embedded_graphics::pixelcolor::BinaryColor::On)
     .build();
 
@@ -44,7 +46,7 @@ where
         .draw(screen)?;
 
     let mut battery_voltage_str: String<16> = String::new();
-    write!(battery_voltage_str, "{}V", battery_voltage).unwrap();
+    write!(battery_voltage_str, "{:.1}V   ", battery_voltage).unwrap();
     Text::with_baseline(
         &battery_voltage_str,
         Point::new(1, 15),
