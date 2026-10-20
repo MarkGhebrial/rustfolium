@@ -5,6 +5,7 @@ mod battery;
 mod configuration;
 mod dshot;
 mod menu;
+mod motor;
 mod usb;
 mod util;
 
@@ -19,7 +20,7 @@ use ssd1306::{
 
 use panic_probe as _;
 
-use crate::configuration::{MOTOR0_CONFIG, MOTOR1_CONFIG, MOTOR2_CONFIG, MOTOR3_CONFIG};
+use crate::motor::Motor;
 
 // Set up the device interrupts
 embassy_rp::bind_interrupts!(struct Interrupts {
@@ -54,138 +55,59 @@ async fn main(spawner: Spawner) {
 
     spawner.spawn(display_task(display)).unwrap();
 
-    let (mut dshot0, mut dshot1, mut dshot2, mut dshot3) = dshot::init_dshot(
+    let (dshot0, dshot1, dshot2, dshot3) = dshot::init_dshot(
         p.PIO0,
         p.PIN_0,
         p.PIN_1,
         p.PIN_2,
         p.PIN_3,
-        embassy_dshot::DshotSpeed::DShot600,
+        configuration::DSHOT_SPEED,
     );
-
-    usb::print(b"Arming dshot...").await;
-    let arm_duration = embassy_time::Duration::from_millis(500); // This can probably be 300ms
-    let _arm_results = embassy_futures::join::join4(
-        dshot0.arm_async(arm_duration),
-        dshot1.arm_async(arm_duration),
-        dshot2.arm_async(arm_duration),
-        dshot3.arm_async(arm_duration),
+    let (mut motor0, mut motor1, mut motor2, mut motor3) = embassy_futures::join::join4(
+        Motor::new(dshot0, configuration::MOTOR0_CONFIG.reversed),
+        Motor::new(dshot1, configuration::MOTOR1_CONFIG.reversed),
+        Motor::new(dshot2, configuration::MOTOR2_CONFIG.reversed),
+        Motor::new(dshot3, configuration::MOTOR3_CONFIG.reversed),
     )
     .await;
-
-    if let Err(_e) = _arm_results.0 {
-        usb::print(b"Encountered error arming dshot 0\n").await;
-    }
-    if let Err(_e) = _arm_results.1 {
-        usb::print(b"Encountered error arming dshot 1\n").await;
-    }
-    if let Err(_e) = _arm_results.2 {
-        usb::print(b"Encountered error arming dshot 2\n").await;
-    }
-    if let Err(_e) = _arm_results.3 {
-        usb::print(b"Encountered error arming dshot 3\n").await;
-    }
-    usb::print(b" done\n").await;
-
-    dshot0
-        .send_command_repeated_async(
-            if MOTOR0_CONFIG.reversed {
-                embassy_dshot::Command::SpinDirectionReversed
-            } else {
-                embassy_dshot::Command::SpinDirectionNormal
-            },
-            6,
-        )
-        .await
-        .unwrap();
-    dshot1
-        .send_command_repeated_async(
-            if MOTOR1_CONFIG.reversed {
-                embassy_dshot::Command::SpinDirectionReversed
-            } else {
-                embassy_dshot::Command::SpinDirectionNormal
-            },
-            6,
-        )
-        .await
-        .unwrap();
-    dshot2
-        .send_command_repeated_async(
-            if MOTOR2_CONFIG.reversed {
-                embassy_dshot::Command::SpinDirectionReversed
-            } else {
-                embassy_dshot::Command::SpinDirectionNormal
-            },
-            6,
-        )
-        .await
-        .unwrap();
-    dshot3
-        .send_command_repeated_async(
-            if MOTOR3_CONFIG.reversed {
-                embassy_dshot::Command::SpinDirectionReversed
-            } else {
-                embassy_dshot::Command::SpinDirectionNormal
-            },
-            6,
-        )
-        .await
-        .unwrap();
 
     let rev = embassy_rp::gpio::Input::new(p.PIN_18, embassy_rp::gpio::Pull::Up);
     let trigger = embassy_rp::gpio::Input::new(p.PIN_21, embassy_rp::gpio::Pull::Up);
 
     let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_micros(100));
     loop {
-        // let voltage = battery::read_battery_voltage().await;
-
-        // display
-        //     .clear(embedded_graphics::pixelcolor::BinaryColor::Off)
-        //     .unwrap();
-        // menu::draw_status_screen(
-        //     &mut display,
-        //     battery::CELL_COUNT.try_get().map(|n| *n),
-        //     voltage,
-        // )
-        // .unwrap();
-        // display.flush().await.unwrap();
-
-        // usb::print(b"Battery voltage (mV): ").await;
-        // usb::print_u32((voltage * 1000.0) as u32).await;
-        // usb::print(b"; Cell count: ").await;
-        // match battery::CELL_COUNT.try_get() {
-        //     Some(count) => usb::print_u32(*count as u32).await,
-        //     None => usb::print(b"--").await,
-        // }
-        // usb::print(b"\n").await;
-
         let mut throttle = 0;
         if rev.is_low() {
             throttle = 1000;
         }
 
         if throttle == 0 {
-            let (idle_result0, idle_result2) = embassy_futures::join::join(
-                dshot0.send_command_async(embassy_dshot::Command::MotorStop),
-                dshot2.send_command_async(embassy_dshot::Command::MotorStop),
-            )
-            .await;
-            idle_result0.unwrap();
-            idle_result2.unwrap();
-
-            // dshot0.send_command(embassy_dshot::Command::MotorStop).unwrap();
-            // dshot2.send_command(embassy_dshot::Command::MotorStop).unwrap();
+            motor0.stop();
+            motor2.stop();
         } else {
-            let (telem0, telem2) = embassy_futures::join::join(
-                dshot0.throttle_with_telemetry(throttle),
-                dshot2.throttle_with_telemetry(throttle),
-            )
-            .await;
-            usb::print(b"")
-            usb::print_u32(telem0.unwrap().erpm).await;
-            usb::print(b"\n").await;
-            // let telem0 = .await.unwrap();
-            // let telem2 = dshot2.throttle_with_telemetry(throttle).await.unwrap();
+            motor0.set_throttle(throttle);
+            motor2.set_throttle(throttle);
+        }
+
+        // Send the dshot commands
+        let dshot_results = embassy_futures::join::join4(
+            motor0.update(),
+            motor1.update(),
+            motor2.update(),
+            motor3.update(),
+        )
+        .await;
+        if let Err(_e) = dshot_results.0 {
+            usb::print(b"Dshot error on motor 0\n").await;
+        }
+        if let Err(_e) = dshot_results.1 {
+            usb::print(b"Dshot error on motor 1\n").await;
+        }
+        if let Err(_e) = dshot_results.2 {
+            usb::print(b"Dshot error on motor 2\n").await;
+        }
+        if let Err(_e) = dshot_results.3 {
+            usb::print(b"Dshot error on motor 3\n").await;
         }
 
         ticker.next().await;

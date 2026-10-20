@@ -1,3 +1,6 @@
+use embassy_dshot::DshotSpeed;
+use embassy_time::Duration;
+
 pub const ADC_RESOLUTION: usize = 4096;
 
 pub const VOLTAGE_DIVIDER_RATIO: f32 = 10.0 / 11.0;
@@ -7,6 +10,10 @@ pub const LOW_VOLTAGE_THRESHOLD: f32 = 3.5;
 pub const CRITICAL_VOLTAGE_THRESHOLD: f32 = 3.2;
 
 /***** MOTOR CONFIGURATION *****/
+pub const DSHOT_SPEED: DshotSpeed = DshotSpeed::DShot600;
+/// How long to send MotorStop commands before the ESC is armed.
+pub const ARM_DURATION: Duration = Duration::from_millis(400);
+
 pub struct MotorConfiguration {
     pub reversed: bool,
 }
