@@ -18,16 +18,15 @@ type UsbDevice =
 
 const MAX_USB_PACKET_SIZE: u16 = 64;
 
-static USB_PIPE: pipe::Pipe<CriticalSectionRawMutex, 128> = Pipe::new();
+static USB_PIPE: pipe::Pipe<CriticalSectionRawMutex, 1024> = Pipe::new();
 
 /// Initialize the usb peripheral for use in CDC-ACM mode.
 // The contents of this function are copied from https://github.com/embassy-rs/embassy/blob/main/examples/rp/src/bin/usb_serial.rs
 pub fn init_usb_serial(
     spawner: Spawner,
     peripheral: embassy_rp::Peri<'static, embassy_rp::peripherals::USB>,
-    interrupts: crate::Interrupts,
 ) {
-    let usb_driver = embassy_rp::usb::Driver::new(peripheral, interrupts);
+    let usb_driver = embassy_rp::usb::Driver::new(peripheral, crate::Interrupts);
     let usb_config = {
         let mut config = embassy_usb::Config::new(0xdead, 0xbeef); // VID and PID don't really matter here
         config.manufacturer = Some("DPI");
@@ -43,15 +42,14 @@ pub fn init_usb_serial(
         static BOS_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
         static CONTROL_BUF: StaticCell<[u8; 64]> = StaticCell::new();
 
-        let builder = embassy_usb::Builder::new(
+        embassy_usb::Builder::new(
             usb_driver,
             usb_config,
             CONFIG_DESCRIPTOR.init([0; 256]),
             BOS_DESCRIPTOR.init([0; 256]),
             &mut [], // No msos descriptors (whatever those are)
             CONTROL_BUF.init([0; 64]),
-        );
-        builder
+        )
     };
     let class: UsbSerialClass = {
         use embassy_usb::class::cdc_acm::{CdcAcmClass, State};

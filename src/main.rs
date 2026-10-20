@@ -35,7 +35,7 @@ async fn main(spawner: Spawner) {
 
     battery::init_adc(spawner, p.ADC, p.PIN_28);
 
-    usb::init_usb_serial(spawner, p.USB, Interrupts);
+    usb::init_usb_serial(spawner, p.USB);
     usb::print(b"Initialized USB").await;
 
     /**** INITIALIZE DISPLAY ****/
