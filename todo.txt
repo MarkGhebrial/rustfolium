@@ -1,7 +1,10 @@
 TODO:
-- USB serial (println)
-- Dshot
-- Voltage sensing
-- Closed loop
-- Firing profiles
-- Menu system and configuration
+[x] USB serial (println)
+[x] Dshot
+[x] Voltage sensing
+[ ] Closed loop
+[ ] Dashboard screen
+    - Showing battery voltage, wheel speeds
+    - Full screen low battery alarm. "Battery low" and "battery empty" screen. Battery empty screen flashes
+[ ] Firing profiles
+[ ] Menu system and configuration
