@@ -3,7 +3,9 @@
 
 mod battery;
 mod configuration;
+mod debounce;
 mod dshot;
+mod input;
 mod menu;
 mod motor;
 mod usb;
@@ -19,7 +21,7 @@ use ssd1306::{
 
 use panic_probe as _;
 
-use crate::motor::Motor;
+use crate::{debounce::Debouncer, input::BinarySource, motor::Motor};
 
 // Set up the device interrupts
 embassy_rp::bind_interrupts!(struct Interrupts {
@@ -70,13 +72,30 @@ async fn main(spawner: Spawner) {
     )
     .await;
 
-    let rev = embassy_rp::gpio::Input::new(p.PIN_18, embassy_rp::gpio::Pull::Up);
-    let trigger = embassy_rp::gpio::Input::new(p.PIN_21, embassy_rp::gpio::Pull::Up);
+    let mut rev = Debouncer::new(
+        embassy_rp::gpio::Input::new(p.PIN_18, embassy_rp::gpio::Pull::Up).set_inverted(true),
+        embassy_time::Duration::from_ticks(0),
+        embassy_time::Duration::from_micros(2000),
+    );
+    let mut trigger = Debouncer::new(
+        embassy_rp::gpio::Input::new(p.PIN_21, embassy_rp::gpio::Pull::Up).set_inverted(true),
+        embassy_time::Duration::from_ticks(0),
+        embassy_time::Duration::from_micros(2000),
+    );
+    let mut menu_button = Debouncer::new(
+        embassy_rp::gpio::Input::new(p.PIN_19, embassy_rp::gpio::Pull::Up).set_inverted(true),
+        embassy_time::Duration::from_micros(1000),
+        embassy_time::Duration::from_micros(1000),
+    );
 
     let mut ticker = embassy_time::Ticker::every(embassy_time::Duration::from_micros(1000));
     loop {
+        rev.update();
+        trigger.update();
+        menu_button.update();
+
         let mut throttle = 0;
-        if rev.is_low() {
+        if rev.get() {
             throttle = 1000;
         }
 
