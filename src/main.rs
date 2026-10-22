@@ -33,7 +33,11 @@ embassy_rp::bind_interrupts!(struct Interrupts {
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    let p = embassy_rp::init(Default::default());
+    // Use the external oscillator and configure the PLLs for 133MHz
+    let hal_config = embassy_rp::config::Config::new(
+        embassy_rp::clocks::ClockConfig::system_freq(133_000_000).unwrap(),
+    );
+    let p = embassy_rp::init(hal_config);
 
     battery::init_adc(spawner, p.ADC, p.PIN_28);
 
