@@ -45,8 +45,9 @@ async fn main(spawner: Spawner) {
     usb::print(b"Initialized USB").await;
 
     /**** INITIALIZE DISPLAY ****/
-    let i2c =
-        embassy_rp::i2c::I2c::new_async(p.I2C1, p.PIN_15, p.PIN_14, Interrupts, Default::default());
+    let mut i2c_config = embassy_rp::i2c::Config::default();
+    i2c_config.frequency = 1_000_000; // 1MHz
+    let i2c = embassy_rp::i2c::I2c::new_async(p.I2C1, p.PIN_15, p.PIN_14, Interrupts, i2c_config);
     let interface = ssd1306::I2CDisplayInterface::new(i2c);
     let mut display = ssd1306::Ssd1306Async::new(
         interface,
