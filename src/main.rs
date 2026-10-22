@@ -31,7 +31,10 @@ embassy_rp::bind_interrupts!(struct Interrupts {
     ADC_IRQ_FIFO => embassy_rp::adc::InterruptHandler;
 });
 
-#[embassy_executor::main]
+#[embassy_executor::main(
+    executor = "embassy_rp::executor::Executor",
+    entry = "cortex_m_rt::entry"
+)]
 async fn main(spawner: Spawner) {
     // Use the external oscillator and configure the PLLs for 133MHz
     let hal_config = embassy_rp::config::Config::new(
@@ -59,7 +62,7 @@ async fn main(spawner: Spawner) {
     display.clear_buffer();
     display.flush().await.unwrap();
 
-    spawner.spawn(display_task(display)).unwrap();
+    spawner.spawn(display_task(display).unwrap());
 
     let (dshot0, dshot1, dshot2, dshot3) = dshot::init_dshot(
         p.PIO0,

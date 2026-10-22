@@ -60,8 +60,8 @@ pub fn init_usb_serial(
     };
     let usb: UsbDevice = usb_builder.build();
 
-    spawner.spawn(usb_task(usb)).unwrap();
-    spawner.spawn(usb_update_task(class)).unwrap();
+    spawner.spawn(usb_task(usb).unwrap());
+    spawner.spawn(usb_update_task(class).unwrap());
 }
 
 #[embassy_executor::task]

@@ -42,7 +42,7 @@ pub fn init_adc(
         .expect("init_adc may only be called once");
 
     // Initialize CELL_COUNT
-    spawner.spawn(cell_count_task()).unwrap();
+    spawner.spawn(cell_count_task().unwrap());
 }
 
 #[embassy_executor::task]
