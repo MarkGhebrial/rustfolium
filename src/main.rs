@@ -99,6 +99,11 @@ async fn main(spawner: Spawner) {
         trigger.update();
         menu_button.update();
 
+        // Enter bootsel if the menu button is pressed
+        if menu_button.get() {
+            embassy_rp::rom_data::reset_to_usb_boot(0, 0);
+        }
+
         let mut throttle = 0;
         if rev.get() {
             throttle = 1000;
