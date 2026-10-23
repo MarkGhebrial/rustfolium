@@ -1,4 +1,9 @@
 MEMORY {
+    /* RP2040 boot ROM starts at 0x00000000 */
+    /* RP2040 boot flash XIP starts at 0x10000000 */
+    /* The first 256 bytes are treated specially by the boot ROM, which is why 
+     * our program starts at 0x10000100 instead of 0x10000000
+     */
     BOOT2   : ORIGIN = 0x10000000, LENGTH = 0x100
     FLASH   : ORIGIN = 0x10000100, LENGTH = 1792K - 0x100
     STORAGE : ORIGIN = ORIGIN(FLASH) + LENGTH(FLASH), LENGTH = 256K
