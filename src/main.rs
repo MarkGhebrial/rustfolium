@@ -19,7 +19,26 @@ use ssd1306::{
     size::DisplaySize128x64,
 };
 
-use panic_probe as _;
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    // let mut panic_str = heapless::String::<1024>::new();
+
+    // // Print "panicked at '$reason', src/main.rs:27:4" to usb serial
+    // writeln!(panic_str, "{}", info).ok();
+    // usb::blocking_print(panic_str.as_bytes());
+
+    // Reboot the device
+    // TODO: There may be a better way to do this:
+    // ```c
+    // #define AIRCR_Register (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
+    // AIRCR_Register = 0x5FA0004;
+    // ```
+    let watchdog_peri = unsafe { embassy_rp::peripherals::WATCHDOG::steal() };
+    let mut watchdog = embassy_rp::watchdog::Watchdog::new(watchdog_peri);
+    watchdog.trigger_reset();
+
+    unreachable!()
+}
 
 use crate::{debounce::Debouncer, input::BinarySource, motor::Motor};
 
